@@ -57,8 +57,8 @@ public class PasswordGenerator {
 	 * <p>
 	 * Available Switches:
 	 * 
-	 * --first ANS          - First Character must be of type (A = Alpha, N = Numeric and/or S = Special).
-	 * --last ANS           - Last Character must be of type (A = Alpha, N = Numeric and/or S = Special).
+	 * --first AULDS          - First Character must be of type (A = Alpha, N = Numeric and/or S = Special).
+	 * --last AULDS           - Last Character must be of type (A = Alpha, N = Numeric and/or S = Special).
 	 *  -r | --repeat ##    - Maximum number of sequentially repeating characters. 
 	 * --length ##          - Specific length for generated password.
 	 * --max-length ###     - Generated password will randomly be between specified length and max-length.
@@ -80,10 +80,30 @@ public class PasswordGenerator {
 		/* ************************************************************************************** *
 		 * Sanity check that given max and min values for options don't break for password length *
 		 * ************************************************************************************** */
+		int specLen = (specialsRequired != null ? (specialsRequired.length > minSpecials ? specialsRequired.length : minSpecials) : minSpecials);
+		specLen += (firstTypeOf == null || charArrayContains(firstTypeOf, 'S') ? 0 : 1);
+		specLen += (lastTypeOf == null || charArrayContains(lastTypeOf, 'S') ? 0 : 1);
+		
+		int lowLen = minLowers + (firstTypeOf == null || charArrayContains(firstTypeOf, 'L') ? 0 : 1);
+		lowLen += (lastTypeOf == null || charArrayContains(lastTypeOf, 'L') ? 0 : 1);
+		
+		int uppLen = minUppers + (firstTypeOf == null || charArrayContains(firstTypeOf, 'U') ? 0 : 1);
+		uppLen += (lastTypeOf == null || charArrayContains(lastTypeOf, 'U') ? 0 : 1);
+		
+		int digLen = minDigits + (firstTypeOf == null || charArrayContains(firstTypeOf, 'D') ? 0 : 1);
+		digLen += (lastTypeOf == null || charArrayContains(lastTypeOf, 'D') ? 0 : 1);
+		
+		int baseLen = digLen + uppLen + lowLen + specLen;
+		
+		if (passwordLength < baseLen) {
+			System.out.println("ERROR: The requirement(s) exceed the desired length of the password!");
+			System.exit(1);
+		}
 		
 		/* ***************************************** *
 		 * Place the placement sensitive items first *
 		 * ***************************************** */
+		System.out.println("Well you made it to here...");
 		
 		/* ************************ *
 		 * Place the required items *
@@ -148,6 +168,43 @@ public class PasswordGenerator {
 		
 	}
 	
+	private static char getChar(String charTypes) {
+		Random rnd = new Random();
+		
+		char charType = (char) rnd.nextInt(charTypes.length());
+		switch (charTypes.toUpperCase().charAt(charType)) {
+		case 'A':
+			
+			break;
+		case 'U':
+			return (char) (rnd.nextInt('Z' - 'A' + 1/*BlockWidth*/) + 'A'/*BlockStart*/);
+		case 'L':
+			return (char) (rnd.nextInt('z' - 'a' + 1/*BlockWidth*/) + 'a'/*BlockStart*/);
+		case 'D':
+			return (char) (rnd.nextInt('9' - '0' + 1/*BlockWidth*/) + '0'/*BlockStart*/);
+		case 'S':
+			
+			break;
+		}
+		
+		return (char) 0;
+	}
+	
+	/**
+	 * 
+	 * @param array
+	 * @param chr
+	 * @return
+	 */
+	private static boolean charArrayContains(char[] array, char chr) {
+		if (array != null) {
+			
+			return (new String(array)).toLowerCase().contains(Character.toString(chr).toLowerCase());
+		}
+		
+		return false;
+	}
+	
 	/**
 	 * Parses and unpacks the passed Arguments into worker variables for use in controlling
 	 * the password generation process.
@@ -155,7 +212,7 @@ public class PasswordGenerator {
 	 * @param args - Program arguments as a {@link String} array
 	 */
 	private static void unpackArguments(String[] args) {
-		Map<String/*Switches*/,String/*SwitchArgs*/> parsedArguments = null;
+		Map<String/*Switches*/, String/*SwitchArgs*/> parsedArguments = null;
 		if ((parsedArguments = parseArguments(args)) != null) {
 			for (Entry<String/*Switch*/, String/*Arguments*/> entry : parsedArguments.entrySet()) {
 				switch (entry.getKey()) {
@@ -224,8 +281,23 @@ public class PasswordGenerator {
 	 * @return
 	 */
 	private static Map<String, String> parseArguments(String[] args) {
+		if (args != null && args.length > 0) {
+			Map<String/*Switch*/, String/*Args*/> results = new HashMap<>();
+			for (int i = 0; i < args.length; i++) {
+				if (args[i].startsWith("-")) {
+					if (args.length > i && !args[i + 1].startsWith("-")) {
+						results.put(args[i], args[i + 1]);
+						i ++;
+					} else {
+						results.put(args[i], null);
+					}
+				}
+			}
+			
+			return results;
+		}
 		
-		return new HashMap<>();
+		return null;
 	}
 	
 	/**
