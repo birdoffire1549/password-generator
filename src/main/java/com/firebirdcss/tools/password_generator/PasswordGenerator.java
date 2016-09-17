@@ -35,19 +35,6 @@ public class PasswordGenerator {
 	private static char[] specialsNot = null;
 	private static char[] specialsRequired = null;
 	
-	private static final String DEFAULT_UNUSABLE_SPECIALS = ";&@\\/\'";
-	private static final String DEFAULT_REQUIRED_SPECIALS = "!#$%()*+,-:<=>?_";
-	
-	/* Minimum default Thresholds */
-	private static final int DEFAULT_MIN_PASSWORD_LENGTH = 8;
-	private static final int DEFAULT_MIN_DIGIT_COUNT = 2;
-	private static final int DEFAULT_MIN_SPECIAL_COUNT = 1;
-	private static final int DEFAULT_MIN_LOWER_COUNT = 1;
-	private static final int DEFAULT_MIN_UPPER_COUNT = 1;
-	
-	/* Maximum default Thresholds */
-	private static final int DEFAULT_MAX_PW_LENGTH = 12;
-	
 	/* Worker Variables */
 	private static char[] generatedPassword;
 	private static List<Integer> emptyLocations = new ArrayList<>();
@@ -95,95 +82,131 @@ public class PasswordGenerator {
 		
 		int baseLen = digLen + uppLen + lowLen + specLen;
 		
-		if (passwordLength < baseLen) {
+		if (passwordLength < baseLen && (maxPasswordLength == null || maxPasswordLength > passwordLength)) {
 			System.out.println("ERROR: The requirement(s) exceed the desired length of the password!");
 			System.exit(1);
 		}
 		
-		/* ***************************************** *
-		 * Place the placement sensitive items first *
-		 * ***************************************** */
-		System.out.println("Well you made it to here...");
+		/* ********************************************************************** *
+		 * Adjust the length of the generated password based on maxPasswordLength *
+		 * *********************************************************************** */
+		Random rnd = new Random();
+		if (maxPasswordLength != null) {
+			passwordLength += rnd.nextInt((maxPasswordLength + 1) - passwordLength);
+		}
+		
+		/* ********************************************** *
+		 * Setup worker variables for password generation *
+		 * ********************************************** */
+		generatedPassword = new char[passwordLength];
+		for (int i = 0; i < passwordLength; i++) {
+			emptyLocations.add(new Integer(i));
+		}
+		
+		/* **************************************** *
+		 * Place the location sensitive items first *
+		 * **************************************** */
+		if (firstTypeOf != null) {
+			generatedPassword[emptyLocations.remove(0)] = getChar(new String(firstTypeOf));
+		}
+		if (lastTypeOf != null) {
+			generatedPassword[emptyLocations.remove((emptyLocations.size() - 1))] = getChar(new String(lastTypeOf));
+		}
 		
 		/* ************************ *
 		 * Place the required items *
 		 * ************************ */
+		for (int i = 0; i < minDigits.intValue(); i++) {
+			placeValue(getChar("D"));
+		}
+		for (int i = 0; i < minUppers.intValue(); i++) {
+			placeValue(getChar("U"));
+		}
+		for (int i = 0; i < minLowers.intValue(); i++) {
+			placeValue(getChar("L"));
+		}
+		
+		//TODO: Required specials here...
 		
 		/* ******************************* *
 		 * Fill in the remaining locations *
 		 * ******************************* */
+		int locationsLeft = emptyLocations.size();
+		for (int i = 0; i < locationsLeft; i++) {
+			placeValue(getChar("ADS")); // TODO: Need to scrub specials
+		}
 		
 		/* ******************************** *
 		 * Handle the results appropriately *
 		 * ******************************** */
-			
-//			generatedPassword = new char[(DEFAULT_MIN_PASSWORD_LENGTH + rnd.nextInt(DEFAULT_MAX_PW_LENGTH - DEFAULT_MIN_PASSWORD_LENGTH))];
-//			for (int i = 0; i < generatedPassword.length; i++) {
-//				emptyLocations.add(new Integer(i));
-//			}
-//			
-//			/* Find and place required minimum digits */
-//			for (int i = 0; i < DEFAULT_MIN_DIGIT_COUNT; i++) {
-//				placeValue((char) (rnd.nextInt(10) + '0'));
-//			}
-//			
-//			/* Find and place required special characters */
-//			for (int i = 0; i < DEFAULT_MIN_SPECIAL_COUNT; i++) {
-//				char character = DEFAULT_REQUIRED_SPECIALS.charAt(rnd.nextInt(DEFAULT_REQUIRED_SPECIALS.length()));
-//				placeValue(character);
-//			}
-//			
-//			/* Find and place required upper-case characters */
-//			for (int i = 0; i < DEFAULT_MIN_UPPER_COUNT; i++) {
-//				char character = (char) (rnd.nextInt('Z' - 'A' + 1/*BlockWidth*/) + 'A'/*BlockStart*/);
-//				placeValue(character);
-//			}
-//			
-//			/* Find and place required lower-case characters */
-//			for (int i = 0; i < DEFAULT_MIN_LOWER_COUNT; i++) {
-//				char character = (char) (rnd.nextInt('z' - 'a' + 1/*BlockWidth*/) + 'a'/*BlockStart*/);
-//				placeValue(character);
-//			}
-//			
-//			/* Find and place the remaining characters */
-//			int tempEmptyLocationsSize = emptyLocations.size();
-//			for (int i = 0; i < tempEmptyLocationsSize; i++) {
-//				boolean characterFound = false;
-//				char character = 0;
-//				
-//				/* Find acceptable lower-case character */
-//				while (!characterFound) {
-//					int value = (rnd.nextInt(93/*BlockWidth*/) + 33/*BlockStart*/);
-//					if (!DEFAULT_UNUSABLE_SPECIALS.contains(String.valueOf((char) value))) {
-//						character = (char) value;
-//						characterFound = true;
-//					}
-//				}
-//				
-//				placeValue(character);
-//			}
-//			
-//			putTextOnClipboard(new String(generatedPassword));
-//			JOptionPane.showMessageDialog(null, "Your auto generated password is: " + new String(generatedPassword) + "\nIt is also available on the clipboard.");
+		putTextOnClipboard(new String(generatedPassword));
 		
+		if (outputClipboardOnly) {
+			JOptionPane.showMessageDialog(null, "Your auto generated password is available on the clipboard.");
+		} else {
+			JOptionPane.showMessageDialog(null, "Your auto generated password is: " + new String(generatedPassword) + "\nIt is also available on the clipboard.");
+		}
 	}
 	
+	/**
+	 * Gets a random location from epmtyLocations removing it and returns it.
+	 * 
+	 * @return Returns the random location as {@link int}
+	 */
+	private static int randomLocation() {
+		Random rnd = new Random();
+		
+		return emptyLocations.remove(rnd.nextInt(emptyLocations.size()));
+	}
+	
+	/**
+	 * Randomly selects a character by it's type.<br>
+	 * Types are as follows:<br>
+	 * A = Alpha, could be upper or lower case
+	 * U = Upper-case alpha
+	 * L = Lower-case alpha
+	 * D = Digit 0-9
+	 * S = Special
+	 * 
+	 * @param charTypes - The character type(s) from which to randomly choose as {@link String}
+	 * @return Returns the randomly selected character as {@link char}
+	 */
 	private static char getChar(String charTypes) {
 		Random rnd = new Random();
 		
 		char charType = (char) rnd.nextInt(charTypes.length());
 		switch (charTypes.toUpperCase().charAt(charType)) {
 		case 'A':
+			if (rnd.nextBoolean()) {
+				
+				return (char) (rnd.nextInt(('z' - 'a')/*BlockWidth*/ + 1) + 'a'/*BlockStart*/);
+			} 
 			
-			break;
+			return (char) (rnd.nextInt(('Z' - 'A')/*BlockWidth*/ + 1) + 'A'/*BlockStart*/);
 		case 'U':
-			return (char) (rnd.nextInt('Z' - 'A' + 1/*BlockWidth*/) + 'A'/*BlockStart*/);
-		case 'L':
-			return (char) (rnd.nextInt('z' - 'a' + 1/*BlockWidth*/) + 'a'/*BlockStart*/);
-		case 'D':
-			return (char) (rnd.nextInt('9' - '0' + 1/*BlockWidth*/) + '0'/*BlockStart*/);
-		case 'S':
 			
+			return (char) (rnd.nextInt(('Z' - 'A')/*BlockWidth*/ + 1) + 'A'/*BlockStart*/);
+		case 'L':
+			
+			return (char) (rnd.nextInt(('z' - 'a')/*BlockWidth*/ + 1) + 'a'/*BlockStart*/);
+		case 'D':
+			
+			return (char) (rnd.nextInt(('9' - '0')/*BlockWidth*/ + 1) + '0'/*BlockStart*/);
+		case 'S':
+			switch (rnd.nextInt(4)) {
+			case 0:
+				
+				return (char) (rnd.nextInt(15/*BlockWidth*/ + 1) + 33/*BlockStart*/);
+			case 1:
+				
+				return (char) (rnd.nextInt(7/*BlockWidth*/ + 1) + 58/*BlockStart*/);
+			case 2:
+				
+				return (char) (rnd.nextInt(6/*BlockWidth*/ + 1) + 91/*BlockStart*/);
+			case 4:
+				
+				return (char) (rnd.nextInt(4/*BlockWidth*/ + 1) + 123/*BlockStart*/);
+			}
 			break;
 		}
 		
@@ -191,10 +214,11 @@ public class PasswordGenerator {
 	}
 	
 	/**
+	 * Checks to see if a given character array contains a specified character.
 	 * 
-	 * @param array
-	 * @param chr
-	 * @return
+	 * @param array - The array in which to look for the given character, as {@link char} array
+	 * @param chr - The character to look for as {@link char}
+	 * @return Returns true as {@link boolean} if character is found in the array otherwise false.
 	 */
 	private static boolean charArrayContains(char[] array, char chr) {
 		if (array != null) {
@@ -314,8 +338,7 @@ public class PasswordGenerator {
 	 * @param character - The character to place as {@link Character}
 	 */
 	private static void placeValue(char character) {
-		Random rnd = new Random();
-		generatedPassword[emptyLocations.remove(rnd.nextInt(emptyLocations.size()))] = character;
+		generatedPassword[randomLocation()] = character;
 	}
 	
 	/**
