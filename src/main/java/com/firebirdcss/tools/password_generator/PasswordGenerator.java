@@ -235,7 +235,7 @@ public class PasswordGenerator {
 									
 									special = (char) (rnd.nextInt(4/*BlockWidth*/ + 1) + 123/*BlockStart*/);
 							}
-						} while (String.valueOf(specialsNot).contains(String.valueOf(special)));
+						} while (specialsNot != null && String.valueOf(specialsNot).contains(String.valueOf(special)));
 						
 						return special;
 					}
