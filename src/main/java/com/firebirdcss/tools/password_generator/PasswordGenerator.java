@@ -12,6 +12,8 @@ import java.util.Random;
 import javax.activation.DataHandler;
 import javax.swing.JOptionPane;
 
+import com.firebirdcss.tools.password_generator.exceptions.StatisticalImprobabilityException;
+
 /**
  * This tool was created to aid in the generating of a random password which meets a
  * wide variety of complexity requirements.
@@ -103,48 +105,58 @@ public class PasswordGenerator {
 			emptyLocations.add(new Integer(i));
 		}
 		
-		/* **************************************** *
-		 * Place the location sensitive items first *
-		 * **************************************** */
-		if (firstTypeOf != null) {
-			generatedPassword[emptyLocations.remove(0)] = getChar(new String(firstTypeOf));
-		}
-		if (lastTypeOf != null) {
-			generatedPassword[emptyLocations.remove((emptyLocations.size() - 1))] = getChar(new String(lastTypeOf));
-		}
-		
-		/* ************************ *
-		 * Place the required items *
-		 * ************************ */
-		for (int i = 0; i < minDigits.intValue(); i++) {
-			placeValue(getChar("D"));
-		}
-		for (int i = 0; i < minUppers.intValue(); i++) {
-			placeValue(getChar("U"));
-		}
-		for (int i = 0; i < minLowers.intValue(); i++) {
-			placeValue(getChar("L"));
-		}
-		
-		//TODO: Required specials here...
-		
-		/* ******************************* *
-		 * Fill in the remaining locations *
-		 * ******************************* */
-		int locationsLeft = emptyLocations.size();
-		for (int i = 0; i < locationsLeft; i++) {
-			placeValue(getChar("ADS")); // TODO: Need to scrub specials
-		}
-		
-		/* ******************************** *
-		 * Handle the results appropriately *
-		 * ******************************** */
-		putTextOnClipboard(new String(generatedPassword));
-		
-		if (outputClipboardOnly) {
-			JOptionPane.showMessageDialog(null, "Your auto generated password is available on the clipboard.");
-		} else {
-			JOptionPane.showMessageDialog(null, "Your auto generated password is: " + new String(generatedPassword) + "\nIt is also available on the clipboard.");
+		try {
+			/* **************************************** *
+			 * Place the location sensitive items first *
+			 * **************************************** */
+			if (firstTypeOf != null) {
+				generatedPassword[emptyLocations.remove(0)] = getChar(new String(firstTypeOf));
+			}
+			if (lastTypeOf != null) {
+				generatedPassword[emptyLocations.remove((emptyLocations.size() - 1))] = getChar(new String(lastTypeOf));
+			}
+			
+			/* ************************ *
+			 * Place the required items *
+			 * ************************ */
+			for (int i = 0; i < minDigits.intValue(); i++) {
+				placeValue(getChar("D"));
+			}
+			for (int i = 0; i < minUppers.intValue(); i++) {
+				placeValue(getChar("U"));
+			}
+			for (int i = 0; i < minLowers.intValue(); i++) {
+				placeValue(getChar("L"));
+			}
+			for (int i = 0; i < minSpecials.intValue(); i++) {
+				placeValue(getChar("S"));
+			}
+			
+			/* ******************************* *
+			 * Fill in the remaining locations *
+			 * ******************************* */
+			int locationsLeft = emptyLocations.size();
+			for (int i = 0; i < locationsLeft; i++) {
+				placeValue(getChar("ADS"));
+			}
+			
+			/* ******************************** *
+			 * Handle the results appropriately *
+			 * ******************************** */
+			putTextOnClipboard(new String(generatedPassword));
+			
+			String message = null;
+			if (outputClipboardOnly) {
+				message = "Your auto generated password is available on the clipboard.";
+			} else {
+				message = "Your auto generated password is: " + new String(generatedPassword) + "\nIt is also available on the clipboard.";
+			}
+			System.out.println(message);
+			JOptionPane.showMessageDialog(null, message);
+			
+		} catch (StatisticalImprobabilityException e) {
+			System.out.println(e.getMessage() + "\n~Application Terminated~\n");
+			System.exit(1);
 		}
 	}
 	
@@ -170,44 +182,65 @@ public class PasswordGenerator {
 	 * 
 	 * @param charTypes - The character type(s) from which to randomly choose as {@link String}
 	 * @return Returns the randomly selected character as {@link char}
+	 * @throws StatisticalImprobabilityException 
 	 */
-	private static char getChar(String charTypes) {
+	private static char getChar(String charTypes) throws StatisticalImprobabilityException {
 		Random rnd = new Random();
 		
 		char charType = (char) rnd.nextInt(charTypes.length());
 		switch (charTypes.toUpperCase().charAt(charType)) {
-		case 'A':
-			if (rnd.nextBoolean()) {
+			case 'A':
+				if (rnd.nextBoolean()) {
+					
+					return (char) (rnd.nextInt(('z' - 'a')/*BlockWidth*/ + 1) + 'a'/*BlockStart*/);
+				} 
+				
+				return (char) (rnd.nextInt(('Z' - 'A')/*BlockWidth*/ + 1) + 'A'/*BlockStart*/);
+			case 'U':
+				
+				return (char) (rnd.nextInt(('Z' - 'A')/*BlockWidth*/ + 1) + 'A'/*BlockStart*/);
+			case 'L':
 				
 				return (char) (rnd.nextInt(('z' - 'a')/*BlockWidth*/ + 1) + 'a'/*BlockStart*/);
-			} 
-			
-			return (char) (rnd.nextInt(('Z' - 'A')/*BlockWidth*/ + 1) + 'A'/*BlockStart*/);
-		case 'U':
-			
-			return (char) (rnd.nextInt(('Z' - 'A')/*BlockWidth*/ + 1) + 'A'/*BlockStart*/);
-		case 'L':
-			
-			return (char) (rnd.nextInt(('z' - 'a')/*BlockWidth*/ + 1) + 'a'/*BlockStart*/);
-		case 'D':
-			
-			return (char) (rnd.nextInt(('9' - '0')/*BlockWidth*/ + 1) + '0'/*BlockStart*/);
-		case 'S':
-			switch (rnd.nextInt(4)) {
-			case 0:
+			case 'D':
 				
-				return (char) (rnd.nextInt(15/*BlockWidth*/ + 1) + 33/*BlockStart*/);
-			case 1:
+				return (char) (rnd.nextInt(('9' - '0')/*BlockWidth*/ + 1) + '0'/*BlockStart*/);
+			case 'S':
+				if (specialsRequired != null) {
 				
-				return (char) (rnd.nextInt(7/*BlockWidth*/ + 1) + 58/*BlockStart*/);
-			case 2:
-				
-				return (char) (rnd.nextInt(6/*BlockWidth*/ + 1) + 91/*BlockStart*/);
-			case 4:
-				
-				return (char) (rnd.nextInt(4/*BlockWidth*/ + 1) + 123/*BlockStart*/);
-			}
-			break;
+					return getAndRemoveSpecial();
+				} else {
+					if (specialsOnly != null) {
+						
+						return specialsOnly[rnd.nextInt(specialsOnly.length)];
+					} else {
+						char special = 0;
+						int cycles = 0;
+						do {
+							if (cycles > 2000) {
+								throw new StatisticalImprobabilityException("No satisfactory special character has been found in '" + cycles + "' cycles!");
+							}
+							cycles ++;
+							switch (rnd.nextInt(4)) {
+								case 0:
+									
+									special = (char) (rnd.nextInt(15/*BlockWidth*/ + 1) + 33/*BlockStart*/);
+								case 1:
+									
+									special = (char) (rnd.nextInt(7/*BlockWidth*/ + 1) + 58/*BlockStart*/);
+								case 2:
+									
+									special = (char) (rnd.nextInt(6/*BlockWidth*/ + 1) + 91/*BlockStart*/);
+								case 4:
+									
+									special = (char) (rnd.nextInt(4/*BlockWidth*/ + 1) + 123/*BlockStart*/);
+							}
+						} while (String.valueOf(specialsNot).contains(String.valueOf(special)));
+						
+						return special;
+					}
+				}
+			// break; <---- Unreachable Break would go here.
 		}
 		
 		return (char) 0;
@@ -328,7 +361,51 @@ public class PasswordGenerator {
 	 * Displays the usage syntax for this application.
 	 */
 	private static void programUsage() {
-		
+		String message = ""
+			+ "usage: password-generator [options]\n"
+			+ "Options:\n\n"
+			
+			+ "-h|--help\n"
+					+ "\t\tPrints the program's usage to the screen.\n"
+			+ "-v|--version\n"
+					+ "\t\tPrints the application's version information to the screen.\n"
+			+ "--first <AULDS>\n"
+					+ "\t\tUsed to force the first character to be of a specific type:\n"
+					+ "\t\tA = Alpha (any case)\n"
+					+ "\t\tU = Upper-case\n"
+					+ "\t\tL = Lower-case\n"
+					+ "\t\tD = Digit\n"
+					+ "\t\tS = Special\n"
+			+ "--last <AULDS>\n"
+					+ "\t\tUsed to force the last character to be of a specific type:\n"
+					+ "\t\tA = Alpha (any case)\n"
+					+ "\t\tU = Upper-case\n"
+					+ "\t\tL = Lower-case\n"
+					+ "\t\tD = Digit\n"
+					+ "\t\tS = Special\n"
+			+ "--length <###>\n"
+					+ "\t\tSpecifies the desired length of the password (minimum length if used with --max-length).\n"
+			+ "--max-length <###>\n"
+					+ "\t\tSpecifies the maximum length of the password, actual length will be randomly chosen.\n"
+			+ "-d|--digit <###>\n"
+					+ "\t\tSpecifies if and at least how many digit(s) are required.\n"
+			+ "-u|--upper <###>\n"
+					+ "\t\tSpecifies if and at least how many upper-case character(s) are required.\n"
+			+ "-l|--lower <###>\n"
+					+ "\t\tSpecifies if and at least how many lower-case character(s) are required.\n"
+			+ "-s|--special <###>\n"
+					+ "\t\tSpecifies if and at least how many special character(s) are required.\n"
+			+ "--specials-only <***>\n"
+					+ "\t\tSpecifies the set valid special characters.\n"
+			+ "--specials-not <***>\n"
+					+ "\t\tExcludes a specific set of special characters from use.\n"
+			+ "--specials-required <***>\n"
+					+ "\t\tSpecifies a set of specials that must be used at least once.\n"
+			+ "-r|--repeat <###>\n"
+					+ "\t\tMaximum number of sequentially repeating characters.\n"
+			+ "-c|--clipboard-only\n"
+					+ "\t\tSpecifies that generated password should only appear on clipboard and not be displayed.\n";
+		System.out.println(message);
 	}
 	
 	/**
@@ -349,5 +426,24 @@ public class PasswordGenerator {
 	private static void putTextOnClipboard(String text) {
 		Transferable trans = new DataHandler(text, DataFlavor.getTextPlainUnicodeFlavor().getMimeType());
 		Toolkit.getDefaultToolkit().getSystemClipboard().setContents(trans, null);
+	}
+	
+	private static char getAndRemoveSpecial() {
+		Random rnd = new Random();
+		int rndNum = rnd.nextInt(specialsRequired.length);
+		int rndNumIndex = 0;
+		char selectedChar = 0;
+		char[] newArray = new char[specialsRequired.length - 1];
+		for (int i = 0; i < specialsRequired.length; i++) {
+			if (i != rndNum) {
+				newArray[rndNumIndex ++] = specialsRequired[i];
+			} else {
+				selectedChar = specialsRequired[i];
+			}
+		}
+		
+		specialsRequired = newArray;
+		
+		return  selectedChar;
 	}
 }
