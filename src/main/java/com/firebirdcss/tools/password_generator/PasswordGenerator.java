@@ -3,17 +3,20 @@ import java.awt.HeadlessException;
 import java.awt.Toolkit;
 import java.awt.datatransfer.DataFlavor;
 import java.awt.datatransfer.Transferable;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Properties;
 import java.util.Random;
 
 import javax.activation.DataHandler;
 import javax.swing.JOptionPane;
 
 import com.firebirdcss.tools.password_generator.exceptions.StatisticalImprobabilityException;
+
 
 /**
  * This tool was created to aid in the generating of a random password which meets a
@@ -23,10 +26,23 @@ import com.firebirdcss.tools.password_generator.exceptions.StatisticalImprobabil
  *
  */
 public class PasswordGenerator {
+	private static String VERSION;
+	static {
+		Properties prop = new Properties();
+		try {
+			prop.load(ClassLoader.getSystemResourceAsStream("version.properties"));
+			VERSION = prop.getProperty("version", "ERROR Loading Version!");
+		} catch (IOException e) {
+			VERSION = "ERROR Loading Version!";
+		}
+		
+	}
+	
+	@SuppressWarnings("unused")
+	private static Integer maxSeqRep = null;
 	private static boolean outputClipboardOnly = false;
 	private static char[] firstTypeOf = null;
 	private static char[] lastTypeOf = null;
-	private static Integer maxSeqRep = null;
 	private static Integer passwordLength = new Integer(6);
 	private static Integer maxPasswordLength = null;
 	private static Integer minDigits = new Integer(0);
@@ -327,6 +343,11 @@ public class PasswordGenerator {
 					case "--clipboard-only":
 						outputClipboardOnly = true;
 						break;
+					case "-v":
+					case "--version":
+						System.out.println("Application Version: " + VERSION);
+						System.exit(0);
+						break;
 					default:
 						System.out.println("Invalid command argument!!!\n");
 						programUsage();
@@ -408,8 +429,8 @@ public class PasswordGenerator {
 					+ "\tExcludes a specific set of special characters from use.\n"
 			+ "--specials-required <***>\n"
 					+ "\tSpecifies a set of specials that must be used at least once.\n"
-			+ "-r|--repeat <###>\n"
-					+ "\tMaximum number of sequentially repeating characters.\n"
+//			+ "-r|--repeat <###>\n"
+//					+ "\tMaximum number of sequentially repeating characters.\n"
 			+ "-c|--clipboard-only\n"
 					+ "\tSpecifies that generated password should only appear on clipboard and not be displayed.\n";
 		System.out.println(message);

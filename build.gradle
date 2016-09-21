@@ -3,9 +3,6 @@
  * ************************* */
 apply plugin: "java"
 apply plugin: 'eclipse'
-apply plugin: 'application'
-
-mainClassName = 'com.firebirdcss.tools.password_generator.PasswordGenerator'
 
 /* ****************************** *
  * Custom Variables defined below *
@@ -17,14 +14,6 @@ def appVersion = props.get('version') // App Version should only be modified in 
 def getDate() {
 	return (new Date()).format("MM-dd-yyyy HH:mm:ss")
 }
-
-def manifestAttributes = [
-	"Implementation-Title": "Password Generator",
-	"Implementation-Version": version,
-	"Implementation-Vendor": "FirebirdCSS",
-	"Build-Date": getDate(),
-	"Main-Class": "com.firebirdcss.tools.password_generator.PasswordGenerator"
-]
 
 /* ****************************** *
  * Application Definition Section *
@@ -64,13 +53,12 @@ dependencies {
 /* ************************************ *
  * JAR build information goes below...  *
  * ************************************ */
-/*
 jar {
     manifest {
     	attributes "Implementation-Title": "password-generator",
     		"Implementation-Version": version,
     		"Implementation-Vendor": "FirebirdCSS",
-    		"Build-Date": getDate()
+    		"Build-Date": getDate(),
+    		"Main-Class": "com.firebirdcss.tools.password_generator.PasswordGenerator"
     }
 }
-*/
