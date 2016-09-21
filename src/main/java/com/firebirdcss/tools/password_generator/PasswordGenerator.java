@@ -328,6 +328,9 @@ public class PasswordGenerator {
 						outputClipboardOnly = true;
 						break;
 					default:
+						System.out.println("Invalid command argument!!!\n");
+						programUsage();
+						System.exit(0);
 						break;
 				}
 			}
