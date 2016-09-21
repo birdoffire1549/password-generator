@@ -61,4 +61,5 @@ jar {
     		"Build-Date": getDate(),
     		"Main-Class": "com.firebirdcss.tools.password_generator.PasswordGenerator"
     }
+    archiveName 'password-generator.jar'
 }
